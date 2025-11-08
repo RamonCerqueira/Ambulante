@@ -1,0 +1,177 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo de Usuário
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("CUSTOMER") // CUSTOMER, VENDOR, ADMIN
+  avatar    String?
+  phone     String?
+  address   String?
+  latitude  Float?
+  longitude Float?
+  
+  // Relacionamentos
+  vendor    Vendor?
+  orders    Order[]    @relation("CustomerOrders")
+  vendorOrders Order[]  @relation("VendorOrders")
+  reviews   Review[]
+  messages  Message[]
+  notifications Notification[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Modelo de Vendedor
+model Vendor {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  businessName  String
+  description   String?
+  rating        Float    @default(0)
+  totalSales    Int      @default(0)
+  latitude      Float
+  longitude     Float
+  radius        Int      @default(5000) // em metros
+  isActive      Boolean  @default(true)
+  
+  // Relacionamentos
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products      Product[]
+  orders        Order[]  @relation("VendorOrders")
+  reviews       Review[] @relation("VendorReviews")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Modelo de Produto
+model Product {
+  id        String   @id @default(cuid())
+  vendorId  String
+  name      String
+  description String?
+  price     Float
+  image     String?
+  category  String?
+  stock     Int      @default(0)
+  isActive  Boolean  @default(true)
+  
+  // Relacionamentos
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Modelo de Pedido
+model Order {
+  id                    String   @id @default(cuid())
+  customerId            String
+  vendorId              String
+  status                String   @default("PENDING") // PENDING, ACCEPTED, PREPARING, READY, DELIVERING, DELIVERED, CANCELLED
+  totalPrice            Float
+  deliveryAddress       String?
+  deliveryLatitude      Float?
+  deliveryLongitude     Float?
+  
+  // Relacionamentos
+  customer              User     @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
+  vendor                User     @relation("VendorOrders", fields: [vendorId], references: [id], onDelete: Cascade)
+  items                 OrderItem[]
+  chat                  Chat?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  completedAt DateTime?
+}
+
+// Modelo de Item do Pedido
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+  
+  // Relacionamentos
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@unique([orderId, productId])
+}
+
+// Modelo de Chat
+model Chat {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  
+  // Relacionamentos
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Modelo de Mensagem
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  senderId  String
+  content   String
+  
+  // Relacionamentos
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+}
+
+// Modelo de Avaliação
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  vendorId  String
+  rating    Int      @default(5)
+  comment   String?
+  
+  // Relacionamentos
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendor    Vendor   @relation("VendorReviews", fields: [vendorId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, vendorId])
+}
+
+// Modelo de Notificação
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("system") // order, vendor, system
+  read      Boolean  @default(false)
+  
+  // Relacionamentos
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+}
+
