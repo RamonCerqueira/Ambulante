@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
-const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '7d';
+const JWT_EXPIRATION = '7';
 
 /**
  * Gerar hash de senha
