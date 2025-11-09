@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     // Extrair token do header
     const authHeader = request.headers.get('authorization');
-    const token = extractToken(authHeader);
+    const token = extractToken(authHeader  || undefined);
 
     if (!token) {
       return NextResponse.json(
@@ -72,7 +72,7 @@ export async function PATCH(request: NextRequest) {
   try {
     // Extrair token do header
     const authHeader = request.headers.get('authorization');
-    const token = extractToken(authHeader);
+    const token = extractToken(authHeader  || undefined);
 
     if (!token) {
       return NextResponse.json(

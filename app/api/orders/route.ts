@@ -4,9 +4,9 @@
  * POST /api/orders - Criar novo pedido
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { extractToken, verifyToken } from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { extractToken, verifyToken } from "@/lib/auth";
 
 /**
  * GET /api/orders
@@ -15,12 +15,12 @@ import { extractToken, verifyToken } from '@/lib/auth';
 export async function GET(request: NextRequest) {
   try {
     // Extrair token do header
-    const authHeader = request.headers.get('authorization');
-    const token = extractToken(authHeader);
+    const authHeader = request.headers.get("authorization");
+    const token = extractToken(authHeader || undefined);
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Token não fornecido' },
+        { error: "Token não fornecido" },
         { status: 401 }
       );
     }
@@ -29,19 +29,16 @@ export async function GET(request: NextRequest) {
     const decoded = verifyToken(token);
 
     if (!decoded) {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     // Obter parâmetros de query
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'customer'; // customer ou vendor
+    const type = searchParams.get("type") || "customer"; // customer ou vendor
 
     // Buscar pedidos
     let orders;
-    if (type === 'vendor') {
+    if (type === "vendor") {
       // Buscar pedidos como vendedor
       orders = await prisma.order.findMany({
         where: { vendorId: decoded.userId },
@@ -60,7 +57,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       });
     } else {
       // Buscar pedidos como cliente
@@ -75,17 +72,17 @@ export async function GET(request: NextRequest) {
           vendor: {
             select: {
               id: true,
-              businessName: true,
-              user: {
+              name: true, // do User
+              phone: true, // do User
+              vendor: {
                 select: {
-                  name: true,
-                  phone: true,
+                  businessName: true, // do Vendor
                 },
               },
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       });
     }
 
@@ -97,9 +94,9 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Erro ao listar pedidos:', error);
+    console.error("Erro ao listar pedidos:", error);
     return NextResponse.json(
-      { error: 'Erro ao listar pedidos' },
+      { error: "Erro ao listar pedidos" },
       { status: 500 }
     );
   }
@@ -112,12 +109,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Extrair token do header
-    const authHeader = request.headers.get('authorization');
-    const token = extractToken(authHeader);
+    const authHeader = request.headers.get("authorization");
+    const token = extractToken(authHeader || undefined);
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Token não fornecido' },
+        { error: "Token não fornecido" },
         { status: 401 }
       );
     }
@@ -126,20 +123,22 @@ export async function POST(request: NextRequest) {
     const decoded = verifyToken(token);
 
     if (!decoded) {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     // Obter dados do corpo da requisição
-    const { vendorId, items, deliveryAddress, deliveryLatitude, deliveryLongitude } =
-      await request.json();
+    const {
+      vendorId,
+      items,
+      deliveryAddress,
+      deliveryLatitude,
+      deliveryLongitude,
+    } = await request.json();
 
     // Validar campos obrigatórios
     if (!vendorId || !items || items.length === 0) {
       return NextResponse.json(
-        { error: 'Vendedor e itens são obrigatórios' },
+        { error: "Vendedor e itens são obrigatórios" },
         { status: 400 }
       );
     }
@@ -198,10 +197,16 @@ export async function POST(request: NextRequest) {
             email: true,
           },
         },
+        // Aqui acessamos o User que é o vendedor e, dentro dele, o Vendor
         vendor: {
           select: {
             id: true,
-            businessName: true,
+            name: true, // do User
+            vendor: {
+              select: {
+                businessName: true, // do Vendor
+              },
+            },
           },
         },
       },
@@ -209,17 +214,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: 'Pedido criado com sucesso',
+        message: "Pedido criado com sucesso",
         order,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Erro ao criar pedido:', error);
+    console.error("Erro ao criar pedido:", error);
     return NextResponse.json(
-      { error: 'Erro ao criar pedido' },
+      { error: "Erro ao criar pedido" },
       { status: 500 }
     );
   }
 }
-

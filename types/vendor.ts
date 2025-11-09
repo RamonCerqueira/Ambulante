@@ -12,6 +12,7 @@ export interface Vendor {
     name: string;
     avatar?: string;
     phone?: string;
+    businessName?: string;
   };
   products: Array<{
     id: string;
